@@ -2,6 +2,9 @@ using System;
 using System.ComponentModel;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Threading;
 using HLab.UserNotification;
 using LittleBigMouse.DisplayLayout.Monitors;
 using LittleBigMouse.Zoning;
@@ -48,9 +51,32 @@ public sealed class TrayIconController(IUserNotificationService notify, ILayoutO
         _ => null
     };
 
+    /// <summary>
+    /// The icon actually shown for <paramref name="icon"/>. On macOS the menu bar wants a
+    /// one-colour "template" image that the system tints white or black to match the bar, so
+    /// each state has a monochrome twin (Assets/Icon/lbm_tray_*.svg) that tells the states
+    /// apart by shape instead of colour.
+    /// </summary>
+    static string ForPlatform(string icon)
+        => OperatingSystem.IsMacOS()
+            ? icon.Replace("icon/lbm_", "icon/lbm_tray_", StringComparison.OrdinalIgnoreCase)
+            : icon;
+
     /// <summary>Reflect a daemon state, if it is one the icon has something to say about.</summary>
     public Task ShowDaemonStateAsync(LittleBigMouseEvent daemonEvent)
-        => IconFor(daemonEvent) is { } icon ? notify.SetIconAsync(icon, 32) : Task.CompletedTask;
+        => IconFor(daemonEvent) is { } icon ? notify.SetIconAsync(ForPlatform(icon), 32) : Task.CompletedTask;
+
+    /// <summary>Mark the tray icon as a macOS template image (see <see cref="ForPlatform"/>).</summary>
+    static void UseTemplateIconOnMac()
+    {
+        if (!OperatingSystem.IsMacOS() || Application.Current is not { } app) return;
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (TrayIcon.GetIcons(app) is not { } icons) return;
+            foreach (var trayIcon in icons)
+                MacOSProperties.SetIsTemplateIcon(trayIcon, true);
+        });
+    }
 
     /// <summary>Build the menu, wire the click and the visibility option, and show the icon.</summary>
     public async Task InitializeAsync(TrayMenu menu)
@@ -84,7 +110,8 @@ public sealed class TrayIconController(IUserNotificationService notify, ILayoutO
         // is already set here, the lambda returns early and NIM_ADD never fires.
         ApplyVisibility();
 
-        await notify.SetIconAsync("Icon/lbm_off", 128);
+        UseTemplateIconOnMac();
+        await notify.SetIconAsync(ForPlatform("Icon/lbm_off"), 128);
 
         notify.Show();
     }
