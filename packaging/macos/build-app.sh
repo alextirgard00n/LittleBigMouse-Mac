@@ -94,7 +94,7 @@ build_one() {
     rm -rf "$publish"
     # -f: the UI project uses <TargetFrameworks> (plural), and publish needs exactly one.
     dotnet publish "$UI_PROJ" -c Release -f net10.0 -r "$rid" --self-contained true \
-        -p:UseAppHost=true -o "$publish"
+        -p:UseAppHost=true -p:SatelliteResourceLanguages=en -o "$publish"
 
     step "[$arch] LittleBigMouse.app"
     app="$DIST/$arch/LittleBigMouse.app"
@@ -108,9 +108,12 @@ build_one() {
     make_icns "$app/Contents/Resources/AppIcon.icns"
 
     step "[$arch] signing (${SIGN_IDENTITY:-ad-hoc})"
-    # Inner Mach-O files first (dylibs, the daemon), the bundle last.
+    # Everything in Contents/MacOS is code to macOS, managed .dll files included
+    # (they get their signature in extended attributes): sign every file first, then
+    # the bundle, which seals them and signs the main executable.
+    local main="$macos/LittleBigMouse.Ui.Avalonia"
     while IFS= read -r -d '' f; do
-        if file -b "$f" | grep -q 'Mach-O'; then sign "$f"; fi
+        [[ "$f" == "$main" ]] || sign "$f"
     done < <(find "$macos" -type f -print0)
     sign "$app"
     codesign --verify --deep --strict "$app" || echo "    warning: signature verification reported a problem (see above)"
