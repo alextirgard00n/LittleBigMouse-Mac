@@ -46,6 +46,7 @@ public interface ILayoutOptions : INotifyPropertyChanged // Change IPropertyChan
       public bool StartMinimized { get; set; } = false;
       public bool StartElevated { get; set; } = false;
       public bool HideTrayIcon { get; set; } = false;
+      public bool HideFromDock { get; set; } = false;
       public bool Elevated { get; set; } = true;
       public bool DebugTools { get; set; } = false;
       public bool ExperimentalFeatures { get; set; } = false;
@@ -228,6 +229,12 @@ public interface ILayoutOptions : INotifyPropertyChanged // Change IPropertyChan
    /// Hide the system tray icon
    /// </summary>
    bool HideTrayIcon { get; set; }
+
+   /// <summary>
+   /// macOS: no Dock icon while the window is closed (menu-bar icon only); the Dock icon
+   /// comes back whenever the window is open
+   /// </summary>
+   bool HideFromDock { get; set; }
 
    /// <summary>
    /// Current elevated state

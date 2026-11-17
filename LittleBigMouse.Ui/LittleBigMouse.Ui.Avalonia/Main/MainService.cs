@@ -115,6 +115,9 @@ public class MainService : ReactiveModel, IMainService
         _tray = new TrayIconController(notify, options);
         _tray.DisposeWith(this);
 
+        // macOS: optional menu-bar-only mode (no Dock icon while the window is closed).
+        new MacDockController(_windows, options).DisposeWith(this);
+
         new WallpaperRefresher(
                 layoutFactory, () => MonitorsLayout, action => Dispatcher.UIThread.Post(action))
             .DisposeWith(this);
@@ -130,6 +133,13 @@ public class MainService : ReactiveModel, IMainService
                 o => o.VcpControl,
                 o => o.Pinned,
                 o => o.ShowMonitorActionWarning)
+            .Skip(1)
+            .Where(_ => !layoutPersistence.IsLoading)
+            .Subscribe(_ => layoutPersistence.SaveLive(options))
+            .DisposeWith(this);
+
+        // Separate subscription: WhenAnyValue's property-only overloads stop at seven.
+        options.WhenAnyValue(o => o.HideFromDock)
             .Skip(1)
             .Where(_ => !layoutPersistence.IsLoading)
             .Subscribe(_ => layoutPersistence.SaveLive(options))

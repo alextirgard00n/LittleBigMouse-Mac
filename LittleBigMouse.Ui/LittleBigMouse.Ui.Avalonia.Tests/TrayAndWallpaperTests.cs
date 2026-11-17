@@ -79,6 +79,38 @@ public sealed class TrayAndWallpaperTests
     }
 
     [Fact]
+    public async Task ASlowEarlierIconNeverPaintsOverALaterState()
+    {
+        // Stopped then Running in quick succession (a display change): if Stopped's render
+        // finishes last, the tray must still end on Running.
+        var stoppedRender = new TaskCompletionSource();
+        var notify = new FakeNotification
+        {
+            Rendering = icon => icon.EndsWith("_off") ? stoppedRender.Task : Task.CompletedTask
+        };
+        using var tray = new TrayIconController(notify, new LbmOptions());
+
+        var stopped = tray.ShowDaemonStateAsync(LittleBigMouseEvent.Stopped);
+        var running = tray.ShowDaemonStateAsync(LittleBigMouseEvent.Running);
+        stoppedRender.SetResult();
+        await Task.WhenAll(stopped, running);
+
+        Assert.EndsWith("_on", notify.LastIcon);
+    }
+
+    [Fact]
+    public async Task TheStartupIconDoesNotOverwriteAStateAlreadyReported()
+    {
+        var notify = new FakeNotification();
+        using var tray = new TrayIconController(notify, new LbmOptions());
+
+        await tray.ShowDaemonStateAsync(LittleBigMouseEvent.Running);
+        await tray.InitializeAsync(MenuOver([]));
+
+        Assert.EndsWith("_on", notify.LastIcon);
+    }
+
+    [Fact]
     public async Task AHiddenTrayIsHiddenBeforeTheIconIsEverLoaded()
     {
         // SetIconAsync queues a dispatcher lambda that checks visibility; applying the

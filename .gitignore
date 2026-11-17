@@ -206,3 +206,6 @@ LittleBigMouse/Control.Loader/setup/*.exe
 # Cargo puts Rust binaries under src/bin/ — do not let the .NET bin/ rule eat them.
 !rust/**/src/bin/
 !rust/**/src/bin/**
+
+# macOS app bundles and disk images (packaging/macos/build-app.sh)
+/dist/

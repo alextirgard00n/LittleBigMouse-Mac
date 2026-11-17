@@ -164,10 +164,16 @@ sealed class FakeNotification : IUserNotificationService
 
     public Dictionary<string, Func<Task>> Menu { get; } = [];
 
-    public Task SetIconAsync(string icon, int i)
+    /// <summary>
+    /// Stands in for the real service's asynchronous rendering: an icon is only recorded as
+    /// shown once this completes for it.
+    /// </summary>
+    public Func<string, Task>? Rendering { get; set; }
+
+    public async Task SetIconAsync(string icon, int i)
     {
+        if (Rendering is { } rendering) await rendering(icon);
         Icons.Add(icon);
-        return Task.CompletedTask;
     }
 
     public void Show() => Shown = true;

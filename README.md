@@ -34,6 +34,19 @@ installs everything else.
 > Experimental. So far it has been used on one two-monitor setup (a 27" 4K OLED with
 > a 16" portable monitor in portrait). Reports from other setups are welcome.
 
+### Install the app
+
+Download the `.dmg` for your Mac from
+[Releases](https://github.com/alextirgard00n/LittleBigMouse-Mac/releases)
+(`arm64` for Apple Silicon, `x64` for Intel), open it and drag **LittleBigMouse** to
+**Applications**. Nothing else is needed: the app carries its own .NET runtime.
+
+The app isn't notarized by Apple, so the first time you open it macOS says it can't
+check it for malicious software. Open **System Settings → Privacy & Security**, scroll
+down and click **Open Anyway**. You only do this once.
+
+### Or run it from source
+
 1. Clone the repository with its submodules:
    ```sh
    git clone --recursive https://github.com/alextirgard00n/LittleBigMouse-Mac
@@ -52,13 +65,17 @@ The launcher:
 ### Accessibility permission
 
 The mouse hook needs Accessibility access to watch and move the cursor. macOS gives
-that permission to the app that *launched* Little Big Mouse, which is **Terminal**
-when you use the launcher. Switch Terminal on in the list (add it with **+** if it
-isn't there), then press **Start** in Little Big Mouse. If the engine was already
-started, it picks up the permission within a few seconds.
+that permission to the app that *launched* Little Big Mouse:
+- the installed app: **LittleBigMouse**;
+- the source launcher: **Terminal**.
 
-If Terminal is switched on but the engine still won't start (this can happen after a
-rebuild), remove Terminal from the list with **−** and add it again.
+Switch it on in **System Settings → Privacy & Security → Accessibility** (add it with
+**+** if it isn't listed), then press **Start** in Little Big Mouse. If the engine was
+already started, it picks up the permission within a few seconds.
+
+If the entry is on but the engine still won't start (this happens after an update or
+a rebuild, because the app's signature changed), remove it from the list with **−**
+and add it again.
 
 ## Setting up your layout
 
@@ -118,6 +135,7 @@ with the real mouse as you make it, without being saved.
 | Border resistance (moving and dragging), Ctrl to force | ✅ |
 | Monitor sizes, bezels, distance compensation | ✅ |
 | Rotated (portrait) monitors | ✅ (check the size it reports) |
+| Menu-bar icon that follows the light/dark menu bar | ✅ |
 | Rearranging displays and choosing the main display from the app | ✅ |
 | Re-detecting when a display is plugged, unplugged or moved | ✅ |
 | Pausing while a chosen app (a game) is in front | ❌ not yet |
@@ -137,7 +155,8 @@ gives it back to macOS straight away.
 | Mouse hook | `rust/crates/lbm-hook/src/hook/macos/` | A CoreGraphics event tap that sees every mouse move, runs it through the shared engine, and moves the cursor with `CGWarpMouseCursorPosition` when it crosses a border |
 | Hook platform layer | `rust/crates/lbm-hook/src/platform/macos/` | Cursor position and warp, the emulated clip, Ctrl and button state, the display list |
 | App platform layer | `LittleBigMouse.Platform.MacOS/` | Display discovery and arrangement through CoreGraphics; reuses the Linux layout mapping and JSON settings |
-| Launcher | `Run LittleBigMouse (Mac).command` | One-click setup, build and launch |
+| Launchers | `Run LittleBigMouse (Mac).command`, `Build LittleBigMouse App (Mac).command` | One-click run from source; one-click app build |
+| App packaging | `packaging/macos/`, `.github/workflows/macos-release.yml` | `.app` bundle, `.dmg`, signing, release workflow |
 
 Three things work differently from Windows under the hood:
 - **Coordinates** are CoreGraphics points, the space macOS moves the cursor in (two
@@ -149,6 +168,33 @@ Three things work differently from Windows under the hood:
   back as soon as macOS lets it out.
 
 More detail, and a test checklist, in [docs/macos.md](docs/macos.md).
+
+## Building the app
+
+Double-click **`Build LittleBigMouse App (Mac).command`** (run the source launcher once
+first if this Mac has never built the project). It builds `LittleBigMouse.app` and a
+`.dmg` into `dist/`, then offers to install the app in /Applications.
+
+From a terminal, with more options (`--arch arm64|x64|both`, `--version`):
+```sh
+packaging/macos/build-app.sh --arch both
+```
+
+The app is self-contained (the .NET runtime is inside), with the mouse hook next to
+the UI in `Contents/MacOS`. It's signed ad-hoc; to sign and notarize with an Apple
+Developer ID, see the comments at the top of the script.
+
+### Publishing a release
+
+Push a tag starting with `mac-v`:
+```sh
+git tag mac-v1.0.0
+git push origin mac-v1.0.0
+```
+The **macOS app** workflow (`.github/workflows/macos-release.yml`) builds both the
+Apple Silicon and the Intel `.dmg` and attaches them to a **draft** release. Check it
+on the Releases page, then publish. Running the workflow by hand from the Actions
+tab builds the same files as downloadable artifacts, without a release.
 
 ## Building by hand
 

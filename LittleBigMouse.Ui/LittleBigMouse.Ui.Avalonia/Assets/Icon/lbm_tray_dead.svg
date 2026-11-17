@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- macOS menu-bar (template) icon: one colour, the system tints it white or black. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+<rect x="1.5" y="7.5" width="8" height="7" rx="1.2" fill="none" stroke="#000" stroke-width="1.6"/><rect x="22.5" y="17.5" width="8" height="7" rx="1.2" fill="none" stroke="#000" stroke-width="1.6"/>
+<path fill="none" stroke="#000" stroke-width="1.6" d="M16 5.3c2.8 0 4.7 2 4.7 4.8v11.8c0 2.8-1.9 4.8-4.7 4.8s-4.7-2-4.7-4.8V10.1c0-2.8 1.9-4.8 4.7-4.8z"/>
+<path fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" d="M5 28L27 4"/>
+</svg>

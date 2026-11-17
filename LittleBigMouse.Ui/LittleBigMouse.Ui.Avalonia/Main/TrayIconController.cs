@@ -1,7 +1,11 @@
 using System;
 using System.ComponentModel;
 using System.Reactive.Disposables;
+using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Threading;
 using HLab.UserNotification;
 using LittleBigMouse.DisplayLayout.Monitors;
 using LittleBigMouse.Zoning;
@@ -48,9 +52,69 @@ public sealed class TrayIconController(IUserNotificationService notify, ILayoutO
         _ => null
     };
 
+    /// <summary>
+    /// The icon actually shown for <paramref name="icon"/>. On macOS the menu bar wants a
+    /// one-colour "template" image that the system tints white or black to match the bar, so
+    /// each state has a monochrome twin (Assets/Icon/lbm_tray_*.svg) that tells the states
+    /// apart by shape instead of colour.
+    /// </summary>
+    static string ForPlatform(string icon)
+        => OperatingSystem.IsMacOS()
+            ? icon.Replace("icon/lbm_", "icon/lbm_tray_", StringComparison.OrdinalIgnoreCase)
+            : icon;
+
     /// <summary>Reflect a daemon state, if it is one the icon has something to say about.</summary>
     public Task ShowDaemonStateAsync(LittleBigMouseEvent daemonEvent)
-        => IconFor(daemonEvent) is { } icon ? notify.SetIconAsync(icon, 32) : Task.CompletedTask;
+    {
+        if (IconFor(daemonEvent) is not { } icon) return Task.CompletedTask;
+        _stateShown = true;
+        return SetIconInOrderAsync(ForPlatform(icon), 32);
+    }
+
+    /// <summary>
+    /// Set once a daemon state has been asked for, so the startup "off" icon never paints over
+    /// a state that arrived while the tray was still being built.
+    /// </summary>
+    volatile bool _stateShown;
+
+    /// <summary>The icon most recently asked for: the one the tray must end up showing.</summary>
+    string? _latestIcon;
+
+    readonly SemaphoreSlim _iconGate = new(1, 1);
+
+    /// <summary>
+    /// SetIconAsync renders the icon asynchronously, so two calls in quick succession
+    /// (Stopped then Running around a display change, or the startup icon racing the daemon's
+    /// first state) could finish in either order and leave the tray showing a stale state.
+    /// Updates run one at a time, and one that has been overtaken by a newer request while
+    /// waiting is skipped: the last state reported is always the one left on screen.
+    /// </summary>
+    async Task SetIconInOrderAsync(string icon, int size)
+    {
+        Volatile.Write(ref _latestIcon, icon);
+        await _iconGate.WaitAsync();
+        try
+        {
+            if (Volatile.Read(ref _latestIcon) != icon) return;
+            await notify.SetIconAsync(icon, size);
+        }
+        finally
+        {
+            _iconGate.Release();
+        }
+    }
+
+    /// <summary>Mark the tray icon as a macOS template image (see <see cref="ForPlatform"/>).</summary>
+    static void UseTemplateIconOnMac()
+    {
+        if (!OperatingSystem.IsMacOS() || Application.Current is not { } app) return;
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (TrayIcon.GetIcons(app) is not { } icons) return;
+            foreach (var trayIcon in icons)
+                MacOSProperties.SetIsTemplateIcon(trayIcon, true);
+        });
+    }
 
     /// <summary>Build the menu, wire the click and the visibility option, and show the icon.</summary>
     public async Task InitializeAsync(TrayMenu menu)
@@ -84,7 +148,10 @@ public sealed class TrayIconController(IUserNotificationService notify, ILayoutO
         // is already set here, the lambda returns early and NIM_ADD never fires.
         ApplyVisibility();
 
-        await notify.SetIconAsync("Icon/lbm_off", 128);
+        UseTemplateIconOnMac();
+        // The daemon may already have reported its state while the menu was being built.
+        if (!_stateShown)
+            await SetIconInOrderAsync(ForPlatform("Icon/lbm_off"), 128);
 
         notify.Show();
     }

@@ -40,6 +40,7 @@ public static class LayoutDtoMapper
         o.BorderValues = dto.BorderValues ?? o.BorderValues;
         o.RescueShortcut = dto.RescueShortcut ?? o.RescueShortcut;
         o.HideTrayIcon = dto.HideTrayIcon ?? o.HideTrayIcon;
+        o.HideFromDock = dto.HideFromDock ?? o.HideFromDock;
     }
 
     public static void Apply(ILayoutOptions o, LayoutOptionsDto? dto)
@@ -189,6 +190,7 @@ public static class LayoutDtoMapper
         BorderValues = o.BorderValues,
         RescueShortcut = o.RescueShortcut,
         HideTrayIcon = o.HideTrayIcon,
+        HideFromDock = o.HideFromDock,
         ExcludedDefaultsVersion = excludedDefaultsVersion
     };
 
