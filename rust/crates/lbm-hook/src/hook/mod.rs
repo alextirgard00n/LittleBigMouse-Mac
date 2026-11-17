@@ -135,6 +135,8 @@ pub(crate) fn on_resume(shared: &Shared) {
 
 /// The foreground window changed (C++ `FocusChanged`): pause the hook while an
 /// excluded app (e.g. a game) is focused, resume when it loses focus.
+// No foreground tracking on macOS yet (needs AppKit), so nothing calls this there.
+#[cfg_attr(target_os = "macos", allow(dead_code))]
 pub(crate) fn on_focus_changed(shared: &Shared, path: String) {
     if shared.is_excluded(&path) {
         if !shared.paused.load(Ordering::SeqCst) && shared.hooked.load(Ordering::SeqCst) {

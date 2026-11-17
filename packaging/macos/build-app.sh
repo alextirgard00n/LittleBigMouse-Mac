@@ -92,7 +92,8 @@ build_one() {
     step "[$arch] UI (dotnet publish, $rid, self-contained)"
     local publish="$DIST/$arch/publish"
     rm -rf "$publish"
-    dotnet publish "$UI_PROJ" -c Release -r "$rid" --self-contained true \
+    # -f: the UI project uses <TargetFrameworks> (plural), and publish needs exactly one.
+    dotnet publish "$UI_PROJ" -c Release -f net10.0 -r "$rid" --self-contained true \
         -p:UseAppHost=true -o "$publish"
 
     step "[$arch] LittleBigMouse.app"
