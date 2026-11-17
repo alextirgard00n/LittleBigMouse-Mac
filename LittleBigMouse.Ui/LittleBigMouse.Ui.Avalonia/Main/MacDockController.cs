@@ -31,13 +31,12 @@ public sealed class MacDockController : IDisposable
         }
 
         windows.WindowOpenChanged += OnWindowOpenChanged;
-        Disposable.Create(() => windows.WindowOpenChanged -= OnWindowOpenChanged).DisposeWith(_subscriptions);
+        _subscriptions.Add(Disposable.Create(() => windows.WindowOpenChanged -= OnWindowOpenChanged));
 
         // Also applies the current value once at startup (WhenAnyValue emits immediately):
         // starting minimized with the option on means starting without a Dock icon.
-        options.WhenAnyValue(o => o.HideFromDock)
-            .Subscribe(_ => Apply())
-            .DisposeWith(_subscriptions);
+        _subscriptions.Add(options.WhenAnyValue(o => o.HideFromDock)
+            .Subscribe(_ => Apply()));
     }
 
     public void Dispose() => _subscriptions.Dispose();

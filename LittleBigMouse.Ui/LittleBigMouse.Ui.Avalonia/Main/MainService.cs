@@ -132,8 +132,14 @@ public class MainService : ReactiveModel, IMainService
                 o => o.DebugTools,
                 o => o.VcpControl,
                 o => o.Pinned,
-                o => o.ShowMonitorActionWarning,
-                o => o.HideFromDock)
+                o => o.ShowMonitorActionWarning)
+            .Skip(1)
+            .Where(_ => !layoutPersistence.IsLoading)
+            .Subscribe(_ => layoutPersistence.SaveLive(options))
+            .DisposeWith(this);
+
+        // Separate subscription: WhenAnyValue's property-only overloads stop at seven.
+        options.WhenAnyValue(o => o.HideFromDock)
             .Skip(1)
             .Where(_ => !layoutPersistence.IsLoading)
             .Subscribe(_ => layoutPersistence.SaveLive(options))
