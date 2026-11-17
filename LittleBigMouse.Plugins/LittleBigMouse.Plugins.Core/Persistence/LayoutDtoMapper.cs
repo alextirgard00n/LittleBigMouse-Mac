@@ -190,7 +190,8 @@ public static class LayoutDtoMapper
         BorderValues = o.BorderValues,
         RescueShortcut = o.RescueShortcut,
         HideTrayIcon = o.HideTrayIcon,
-        HideFromDock = o.HideFromDock,
+        // Written only when on: a macOS-only setting leaves every other platform's file as it was.
+        HideFromDock = o.HideFromDock ? true : null,
         ExcludedDefaultsVersion = excludedDefaultsVersion
     };
 
