@@ -36,6 +36,12 @@ public sealed class MainWindowManager(
     /// <summary>The open window, or null when there is none.</summary>
     public Window? Current => _window;
 
+    /// <summary>
+    /// Raised with true just before a new window is shown, and with false once it has closed.
+    /// (Restoring a window that is already open raises nothing.)
+    /// </summary>
+    public event Action<bool>? WindowOpenChanged;
+
     /// <summary>Contribute to the window's view-model when it is next built.</summary>
     public void AddPlugin(Action<IMainPluginsViewModel>? action) => _plugins += action;
 
@@ -77,6 +83,7 @@ public sealed class MainWindowManager(
         {
             _window = null;
             ReleaseWindowSubscriptions();
+            WindowOpenChanged?.Invoke(false);
         }
 
         async void OnClosing(object? sender, WindowClosingEventArgs e)
@@ -103,6 +110,7 @@ public sealed class MainWindowManager(
         _windowSubscriptions = subscriptions;
         _window = window;
 
+        WindowOpenChanged?.Invoke(true);
         window.Show();
     }
 

@@ -57,6 +57,14 @@ public class LbmOptions : SavableReactiveModel, ILayoutOptions
     bool _hideTrayIcon;
 
     [DataMember]
+    public bool HideFromDock
+    {
+        get => _hideFromDock;
+        set => this.SetAndRaise(ref _hideFromDock, value);
+    }
+    bool _hideFromDock;
+
+    [DataMember]
     public bool Elevated
     {
         get => _elevated;

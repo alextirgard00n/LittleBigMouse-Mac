@@ -79,10 +79,19 @@
 							                     Description="Reopen the window by launching LittleBigMouse again">
 								<ToggleSwitch IsChecked="{Binding Model.HideTrayIcon, FallbackValue=false, Mode=TwoWay}"/>
 							</controls:SettingRow>
+							<!-- macOS only: menu-bar-only mode, Dock icon just while this window is open. -->
+							<Border Classes="SettingSeparator" IsVisible="{Binding IsMacOS}"/>
+							<controls:SettingRow Classes="Sub"
+							                     IsVisible="{Binding IsMacOS}"
+							                     Header="Hide from Dock"
+							                     Description="Show the Dock icon only while this window is open">
+								<ToggleSwitch IsChecked="{Binding Model.HideFromDock, FallbackValue=false, Mode=TwoWay}"/>
+							</controls:SettingRow>
 						</StackPanel>
 					</Border>
 
-					<Border Classes="SettingCard">
+					<!-- UAC elevation: Windows only. -->
+					<Border Classes="SettingCard" IsVisible="{Binding IsWindows}">
 						<controls:SettingRow Icon="{StaticResource Lbm.Icon.Shield}"
 						                     Header="Start with elevated privileges"
 						                     Description="Keeps working over elevated apps (admin accounts only; one UAC prompt on manual launch, none at logon)">

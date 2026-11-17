@@ -148,6 +148,12 @@ public class LbmOptionsViewModel : ViewModel<ILayoutOptions>
     /// </summary>
     public bool RescueShortcutSupported => OperatingSystem.IsWindows();
 
+    /// <summary>Shows the macOS-only settings (Hide from Dock).</summary>
+    public bool IsMacOS => OperatingSystem.IsMacOS();
+
+    /// <summary>Shows the Windows-only settings (start elevated).</summary>
+    public bool IsWindows => OperatingSystem.IsWindows();
+
     /// <summary>Empty while the rescue shortcut is registered and working.</summary>
     public string ShortcutWarning
     {
