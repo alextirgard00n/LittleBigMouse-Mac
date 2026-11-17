@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Reactive.Disposables;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -64,7 +65,44 @@ public sealed class TrayIconController(IUserNotificationService notify, ILayoutO
 
     /// <summary>Reflect a daemon state, if it is one the icon has something to say about.</summary>
     public Task ShowDaemonStateAsync(LittleBigMouseEvent daemonEvent)
-        => IconFor(daemonEvent) is { } icon ? notify.SetIconAsync(ForPlatform(icon), 32) : Task.CompletedTask;
+    {
+        if (IconFor(daemonEvent) is not { } icon) return Task.CompletedTask;
+        _stateShown = true;
+        return SetIconInOrderAsync(ForPlatform(icon), 32);
+    }
+
+    /// <summary>
+    /// Set once a daemon state has been asked for, so the startup "off" icon never paints over
+    /// a state that arrived while the tray was still being built.
+    /// </summary>
+    volatile bool _stateShown;
+
+    /// <summary>The icon most recently asked for: the one the tray must end up showing.</summary>
+    string? _latestIcon;
+
+    readonly SemaphoreSlim _iconGate = new(1, 1);
+
+    /// <summary>
+    /// SetIconAsync renders the icon asynchronously, so two calls in quick succession
+    /// (Stopped then Running around a display change, or the startup icon racing the daemon's
+    /// first state) could finish in either order and leave the tray showing a stale state.
+    /// Updates run one at a time, and one that has been overtaken by a newer request while
+    /// waiting is skipped: the last state reported is always the one left on screen.
+    /// </summary>
+    async Task SetIconInOrderAsync(string icon, int size)
+    {
+        Volatile.Write(ref _latestIcon, icon);
+        await _iconGate.WaitAsync();
+        try
+        {
+            if (Volatile.Read(ref _latestIcon) != icon) return;
+            await notify.SetIconAsync(icon, size);
+        }
+        finally
+        {
+            _iconGate.Release();
+        }
+    }
 
     /// <summary>Mark the tray icon as a macOS template image (see <see cref="ForPlatform"/>).</summary>
     static void UseTemplateIconOnMac()
@@ -111,7 +149,9 @@ public sealed class TrayIconController(IUserNotificationService notify, ILayoutO
         ApplyVisibility();
 
         UseTemplateIconOnMac();
-        await notify.SetIconAsync(ForPlatform("Icon/lbm_off"), 128);
+        // The daemon may already have reported its state while the menu was being built.
+        if (!_stateShown)
+            await SetIconInOrderAsync(ForPlatform("Icon/lbm_off"), 128);
 
         notify.Show();
     }
